@@ -696,16 +696,25 @@ function applyCorrection(id,val){
   corrections=corrections.filter(function(x){return x.id!==id});render();
 }
 function dismissCorrection(id){corrections=corrections.filter(function(x){return x.id!==id});toast("Dismissed");render()}
+function entryPreviewCard(o){
+  var meta=[];
+  if(o.subtitle)meta.push('<div style="font-size:.82rem;color:var(--muted);margin-top:2px">'+esc(o.subtitle)+'</div>');
+  if(o.inst)meta.push('<div style="font-size:.82rem;color:var(--muted);margin-top:2px">'+esc(instName(o.inst))+'</div>');
+  var dateText=[];
+  if(o.start)dateText.push(esc(o.start));
+  if(o.end)dateText.push(esc(o.end));
+  if(dateText.length)meta.push('<div style="font-size:.82rem;color:var(--muted);margin-top:2px">Dates: '+dateText.join(" – ")+'</div>');
+  meta.push('<div style="font-size:.78rem;color:var(--muted-2);margin-top:6px">Type: '+esc(typeLabels[o.type]||o.type)+' · Trust: '+esc(o.trust||o.status)+' · Evidence: '+(o.evidence?o.evidence.length:0)+'</div>');
+  return '<div class="prop-detail" style="margin-top:8px;padding:10px 12px">'+
+    '<div style="font-weight:700;color:var(--navy-800)">'+esc(o.title)+'</div>'+
+    meta.join("")+
+    '</div>';
+}
 function correctionContext(c){
   var ids=(c.ids||[]).filter(Boolean);
   if(!ids.length)return "";
-  var rows=objects.filter(function(o){return ids.indexOf(o.id)>=0;}).map(function(o){
-    var meta=[];
-    if(o.subtitle)meta.push(esc(o.subtitle));
-    if(o.inst)meta.push(esc(instName(o.inst)));
-    return '<div style="margin-top:8px"><div style="font-weight:700;color:var(--navy-800)">'+esc(o.title)+'</div>'+(meta.length?'<div style="font-size:.8rem;color:var(--muted);margin-top:2px">'+meta.join(" · ")+'</div>':'')+'</div>';
-  }).join("");
-  return rows?'<div class="merge-note" style="margin-top:12px"><div><b>Current entry</b></div>'+rows+'</div>':"";
+  var rows=objects.filter(function(o){return ids.indexOf(o.id)>=0;}).map(function(o){return entryPreviewCard(o);}).join("");
+  return rows?'<div class="merge-note" style="margin-top:12px;display:block"><div><b>Current entry</b></div>'+rows+'</div>':"";
 }
 function correctionCard(c){
   var input=c.kind==="year"?'<input data-corryear="'+c.id+'" placeholder="e.g. 2023" style="width:120px;padding:.4rem .6rem;border:1px solid var(--line);border-radius:8px;margin-right:8px;font-family:var(--sans)"/>':'';
