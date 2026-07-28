@@ -661,29 +661,39 @@ function trustBar(label,n,color){var tot=trusted().length+proposals.length;var p
 
 /* ---- EXTRACTION REVIEW (onboarding) ---- */
 var corrections=null; // null = AI review not run yet
+var dismissedCorrectionIds=[];
 function normT(s){return (s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim()}
 function truncT(s,n){s=s||"";n=n||46;return s.length>n?s.slice(0,n)+"…":s}
 function hasYear(s){return /(19|20)\d\d/.test(s||"")}
+function addCorrectionSuggestion(s){
+  if(!s||!s.id||dismissedCorrectionIds.indexOf(s.id)>=0)return;
+  if(corrections&&corrections.some(function(x){return x.id===s.id}))return;
+  return s;
+}
 function generateCorrections(){
   var out=[];
+  function pushSuggestion(s){var item=addCorrectionSuggestion(s);if(item)out.push(item);}
   // demo-specific illustrative queries
   if(PERSON.demo){
-    out.push({id:"cd1",kind:"info",ids:["o_gr1"],q:"Your R01 grant doesn’t list co-investigators. Want to add them, or keep it as is?",sugg:"Looks right"});
-    out.push({id:"cd2",kind:"info",ids:["o_pr1"],q:"“Invited Lecture: The future of AF ablation” has no end date — was this a single-day event?",sugg:"Yes, single day"});
+    var demoGrant=objects.filter(function(o){return o.id==="o_gr1"})[0];
+    if(demoGrant&&isCompleteEntry(demoGrant))pushSuggestion({id:"cd1",kind:"info",ids:["o_gr1"],q:"Your R01 grant doesn’t list co-investigators. Want to add them, or keep it as is?",sugg:"Looks right"});
+    var demoPres=objects.filter(function(o){return o.id==="o_pr1"})[0];
+    if(demoPres&&isCompleteEntry(demoPres))pushSuggestion({id:"cd2",kind:"info",ids:["o_pr1"],q:"“Invited Lecture: The future of AF ablation” has no end date — was this a single-day event?",sugg:"Yes, single day"});
   }
   // duplicates (same type, near-identical title)
   for(var i=0;i<objects.length;i++){for(var j=i+1;j<objects.length;j++){
     var a=objects[i],b=objects[j];if(a.type!==b.type)continue;
+    if(!isCompleteEntry(a)||!isCompleteEntry(b))continue;
     var na=normT(a.title),nb=normT(b.title);
     if(na&&(na===nb||(na.length>14&&(nb.indexOf(na)===0||na.indexOf(nb)===0)))){
-      out.push({id:"c"+out.length,kind:"merge",ids:[a.id,b.id],q:"“"+truncT(a.title)+"” and “"+truncT(b.title)+"” look like the same "+(typeLabels[a.type]||a.type).toLowerCase().replace(/s$/,"")+". Merge them into one?",sugg:"Merge"});
+      pushSuggestion({id:"c"+out.length,kind:"merge",ids:[a.id,b.id],q:"“"+truncT(a.title)+"” and “"+truncT(b.title)+"” look like the same "+(typeLabels[a.type]||a.type).toLowerCase().replace(/s$/,"")+". Merge them into one?",sugg:"Merge"});
     }
     if(out.length>=6)break;
   }if(out.length>=6)break;}
   // missing year on time-bound entries
-  objects.forEach(function(o){if(out.length<6&&["publication","presentation","award","grant"].indexOf(o.type)>=0&&!hasYear(o.title)&&!hasYear(o.subtitle)){out.push({id:"c"+out.length,kind:"year",ids:[o.id],q:"“"+truncT(o.title)+"” doesn’t include a year. What year should it show? (optional)",sugg:"Add year"})}});
+  objects.forEach(function(o){if(out.length<6&&isCompleteEntry(o)&&["publication","presentation","award","grant"].indexOf(o.type)>=0&&!hasYear(o.title)&&!hasYear(o.subtitle)){pushSuggestion({id:"c"+out.length,kind:"year",ids:[o.id],q:"“"+truncT(o.title)+"” doesn’t include a year. What year should it show? (optional)",sugg:"Add year"})}});
   // heading captured as an entry
-  objects.forEach(function(o){var n=normT(o.title);if(out.length<6&&n.length<=18&&/^(publications?|education|grants?|awards?|honou?rs?|presentations?|appointments?|leadership|service|training)$/.test(n)){out.push({id:"c"+out.length,kind:"remove",ids:[o.id],q:"“"+esc(o.title)+"” looks like a section heading rather than a real entry. Remove it?",sugg:"Remove"})}});
+  objects.forEach(function(o){var n=normT(o.title);if(out.length<6&&isCompleteEntry(o)&&n.length<=18&&/^(publications?|education|grants?|awards?|honou?rs?|presentations?|appointments?|leadership|service|training)$/.test(n)){pushSuggestion({id:"c"+out.length,kind:"remove",ids:[o.id],q:"“"+esc(o.title)+"” looks like a section heading rather than a real entry. Remove it?",sugg:"Remove"})}});
   return out;
 }
 function applyCorrection(id,val){
@@ -692,10 +702,14 @@ function applyCorrection(id,val){
   else if(c.kind==="year"){var o=objects.filter(function(x){return x.id===c.ids[0]})[0];var y=(val||"").trim();if(!y){toast("Enter a year, or dismiss");return}if(o){o.title=o.title+" ("+y+")";o.versions.push({d:NOW,w:"You",t:"Added year "+y+" (CV review)"})}toast("Year added ✓")}
   else if(c.kind==="remove"){objects=objects.filter(function(o){return o.id!==c.ids[0]});toast("Removed ✓")}
   else {toast("Thanks — noted ✓")}
+  if(dismissedCorrectionIds.indexOf(id)<0)dismissedCorrectionIds.push(id);
   audit.unshift({ic:"🔧",t:"CV review: "+c.sugg+" applied",who:"You",time:"Just now"});
   corrections=corrections.filter(function(x){return x.id!==id});render();
 }
-function dismissCorrection(id){corrections=corrections.filter(function(x){return x.id!==id});toast("Dismissed");render()}
+function dismissCorrection(id){
+  if(dismissedCorrectionIds.indexOf(id)<0)dismissedCorrectionIds.push(id);
+  corrections=corrections.filter(function(x){return x.id!==id});toast("Dismissed");render()
+}
 function isLikelySectionHeading(text){
   var t=(text||"").replace(/\s+/g," ").trim();
   if(!t)return true;
@@ -1169,7 +1183,7 @@ function doParseCV(){
     var res=parseCV(uploadState.text);
     if(!res.objects.length){uploadState.busy=false;renderUpload();toast("Couldn’t read CV sections — make sure it has headings like Education, Publications, Grants…");return}
     if(!uploadState.fileName)CV_ORIGINAL=null; // pasted text has no original format
-    objects=res.objects;proposals=[];socialDrafts=[];corrections=null;CV_FILE=uploadState.fileName||"your pasted CV";
+    objects=res.objects;proposals=[];socialDrafts=[];corrections=null;dismissedCorrectionIds=[];CV_FILE=uploadState.fileName||"your pasted CV";
     activity=[{c:"var(--ok)",t:"Imported <b>"+res.objects.length+"</b> items — all trusted and ready to use",time:"Just now"}];
     audit.unshift({ic:"↥",t:"Imported CV ("+(uploadState.fileName||"pasted text")+") — "+res.objects.length+" items parsed",who:"You",time:"Just now"});
     setPerson(res.name);CV_EDIT_HTML=null;
@@ -1190,7 +1204,7 @@ function setPerson(name){
 }
 function resetDemo(){
   if(!DEMO_SNAPSHOT)return;var s=JSON.parse(DEMO_SNAPSHOT);objects=s.o;proposals=s.p;activity=s.a;socialDrafts=s.d;
-  PERSON={name:"Elena Reyes, MD",first:"Dr. Elena Reyes",initials:"ER",role:"Associate Professor of Medicine (Cardiology)",subj:"She",poss:"Her",demo:true};CV_FILE="Reyes_CV_2025.pdf";corrections=null;CV_ORIGINAL=null;CV_EDIT_HTML=null;state.tmpl="cv";
+  PERSON={name:"Elena Reyes, MD",first:"Dr. Elena Reyes",initials:"ER",role:"Associate Professor of Medicine (Cardiology)",subj:"She",poss:"Her",demo:true};CV_FILE="Reyes_CV_2025.pdf";corrections=null;dismissedCorrectionIds=[];CV_ORIGINAL=null;CV_EDIT_HTML=null;state.tmpl="cv";
   var n=document.querySelector(".who .n");if(n)n.textContent="Dr. Elena Reyes, MD";
   var r=document.querySelector(".who .r");if(r)r.textContent="Assoc. Professor · Cardiology";
   var av=document.querySelector(".topbar .avatar");if(av)av.textContent="ER";
@@ -1684,7 +1698,7 @@ function bindViewEvents(){
   v.querySelectorAll("[data-edit]").forEach(function(b){b.onclick=function(e){e.stopPropagation();openObj(b.dataset.edit)}});
   var aa=$("#approveAllHi");if(aa)aa.onclick=function(){objects.filter(function(o){return o.needsConfirm}).forEach(function(o){o.needsConfirm=false;o.versions.push({d:NOW,w:"You",t:"Confirmed extraction (bulk)"})});audit.unshift({ic:"✅",t:"Confirmed all extracted items",who:"You",time:"Just now"});toast("All extractions confirmed ✓");render()};
   var ru=$("#reupload");if(ru)ru.onclick=openUpload;
-  var rr=$("#runReview");if(rr)rr.onclick=function(){corrections=generateCorrections();audit.unshift({ic:"🔍",t:"Ran AI review of imported CV — "+corrections.length+" suggestion(s)",who:"You",time:"Just now"});toast(corrections.length?corrections.length+" suggestion(s) from the AI review":"No issues found — your CV looks great ✓");render()};
+  var rr=$("#runReview");if(rr)rr.onclick=function(){corrections=generateCorrections().filter(function(x){return dismissedCorrectionIds.indexOf(x.id)<0});audit.unshift({ic:"🔍",t:"Ran AI review of imported CV — "+corrections.length+" suggestion(s)",who:"You",time:"Just now"});toast(corrections.length?corrections.length+" suggestion(s) from the AI review":"No issues found — your CV looks great ✓");render()};
   v.querySelectorAll("[data-corrapply]").forEach(function(b){b.onclick=function(){var id=b.dataset.corrapply;var yi=v.querySelector('[data-corryear="'+id+'"]');applyCorrection(id,yi?yi.value:null)}});
   v.querySelectorAll("[data-corrdismiss]").forEach(function(b){b.onclick=function(){dismissCorrection(b.dataset.corrdismiss)}});
   // graph filter
