@@ -678,14 +678,13 @@ dismissedCorrectionIds=loadDismissedCorrectionIds();
 function normT(s){return (s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim()}
 function truncT(s,n){s=s||"";n=n||46;return s.length>n?s.slice(0,n)+"…":s}
 function hasYear(s){return /(19|20)\d\d/.test(s||"")}
-function addCorrectionSuggestion(s){
-  if(!s||!s.id||dismissedCorrectionIds.indexOf(s.id)>=0)return;
-  if(corrections&&corrections.some(function(x){return x.id===s.id}))return;
-  return s;
-}
 function generateCorrections(){
   var out=[];
-  function pushSuggestion(s){var item=addCorrectionSuggestion(s);if(item)out.push(item);}
+  function pushSuggestion(s){
+    if(!s||!s.id||dismissedCorrectionIds.indexOf(s.id)>=0)return;
+    if(out.some(function(x){return x.id===s.id}))return;
+    out.push(s);
+  }
   // demo-specific illustrative queries
   if(PERSON.demo){
     var demoGrant=objects.filter(function(o){return o.id==="o_gr1"})[0];
@@ -711,14 +710,17 @@ function generateCorrections(){
 }
 function applyCorrection(id,val){
   var c=(corrections||[]).filter(function(x){return x.id===id})[0];if(!c)return;
-  if(c.kind==="merge"){var keep=objects.filter(function(o){return o.id===c.ids[0]})[0];if(keep)keep.versions.push({d:NOW,w:"You",t:"Merged duplicate (CV review)"});objects=objects.filter(function(o){return o.id!==c.ids[1]});toast("Merged ✓")}
-  else if(c.kind==="year"){var o=objects.filter(function(x){return x.id===c.ids[0]})[0];var y=(val||"").trim();if(!y){toast("Enter a year, or dismiss");return}if(o){o.title=o.title+" ("+y+")";o.versions.push({d:NOW,w:"You",t:"Added year "+y+" (CV review)"})}toast("Year added ✓")}
+  if(c.kind==="merge"){var keep=objects.filter(function(o){return o.id===c.ids[0]})[0];if(keep){keep.versions.push({d:NOW,w:"You",t:"Merged duplicate (CV review)"});keep.title=keep.title;}
+    objects=objects.filter(function(o){return o.id!==c.ids[1]});toast("Merged ✓")}
+  else if(c.kind==="year"){var o=objects.filter(function(x){return x.id===c.ids[0]})[0];var y=(val||"").trim();if(!y){toast("Enter a year, or dismiss");return}if(o){o.title=(o.title||"").replace(/ \(\d{4}\)$/,"")+" ("+y+")";o.versions.push({d:NOW,w:"You",t:"Added year "+y+" (CV review)"})}toast("Year added ✓")}
   else if(c.kind==="remove"){objects=objects.filter(function(o){return o.id!==c.ids[0]});toast("Removed ✓")}
   else {toast("Thanks — noted ✓")}
   if(dismissedCorrectionIds.indexOf(id)<0)dismissedCorrectionIds.push(id);
   persistDismissedCorrectionIds();
   audit.unshift({ic:"🔧",t:"CV review: "+c.sugg+" applied",who:"You",time:"Just now"});
-  corrections=corrections.filter(function(x){return x.id!==id});render();
+  corrections=corrections.filter(function(x){return x.id!==id});
+  if(state.view==="documents"){$("#docPreview").innerHTML=renderDoc();}
+  render();
 }
 function dismissCorrection(id){
   if(dismissedCorrectionIds.indexOf(id)<0)dismissedCorrectionIds.push(id);
