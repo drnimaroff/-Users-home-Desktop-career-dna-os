@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CareerDNA OS is a trust-first professional identity workspace for academic medicine professionals." />
+    <meta property="og:title" content="CareerDNA OS — Your career, always current" />
+    <meta property="og:description" content="A trust-first professional identity workspace for academic medicine professionals." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://careerdnaos.com" />
+    <title>CareerDNA OS — Your career, always current</title>
+    <style>
+      :root {
+        --navy: #0f2444;
+        --navy-2: #16305b;
+        --bronze: #c1943f;
+        --bronze-dark: #a67a2c;
+        --ink: #1a2233;
+        --muted: #5b6472;
+        --line: #e4e9f0;
+        --bg: #f7f9fc;
+        --white: #ffffff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        color: var(--ink);
+        background: linear-gradient(180deg, #fff, var(--bg));
+        line-height: 1.6;
+      }
+      a { color: inherit; text-decoration: none; }
+      header {
+        background: linear-gradient(135deg, var(--navy), var(--navy-2));
+        color: white;
+        padding: 20px 24px 72px;
+      }
+      .wrap { max-width: 1160px; margin: 0 auto; }
+      .nav { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+      .brand { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.01em; }
+      .brand span { color: var(--bronze); }
+      .nav-links { display: flex; gap: 18px; color: rgba(255,255,255,0.9); font-weight: 600; }
+      .hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 32px; align-items: center; padding-top: 42px; }
+      .hero h1 { font-size: clamp(2.1rem, 3.4vw, 3.4rem); line-height: 1.08; margin: 0 0 16px; }
+      .hero p { font-size: 1.05rem; color: rgba(255,255,255,0.9); max-width: 640px; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 16px; border-radius: 999px; font-weight: 700; border: 1px solid transparent; }
+      .btn-primary { background: var(--bronze); color: var(--navy); }
+      .btn-secondary { background: rgba(255,255,255,0.12); color: white; border-color: rgba(255,255,255,0.2); }
+      .hero-card {
+        background: rgba(255,255,255,0.96); color: var(--ink); border-radius: 20px; padding: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+      }
+      .hero-card h3 { margin: 0 0 12px; font-size: 1.15rem; }
+      .hero-card ul { margin: 0; padding-left: 18px; color: var(--muted); }
+      .hero-card li { margin-bottom: 8px; }
+      section { padding: 56px 24px; }
+      .section-title { max-width: 780px; margin-bottom: 24px; }
+      .section-title h2 { font-size: 1.8rem; margin-bottom: 10px; }
+      .section-title p { color: var(--muted); margin: 0; }
+      .grid { display: grid; gap: 18px; }
+      .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .card { background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(15,36,68,0.05); }
+      .card h3 { margin-top: 0; margin-bottom: 8px; }
+      .card p { color: var(--muted); margin: 0; }
+      .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #e8eff8; color: var(--navy); font-size: 0.82rem; font-weight: 700; margin-bottom: 10px; }
+      .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+      .metric { background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+      .metric strong { display: block; font-size: 1.5rem; color: var(--navy); }
+      .metric span { color: var(--muted); font-size: 0.92rem; }
+      .cta-band { background: var(--navy); color: white; border-radius: 24px; padding: 28px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+      footer { padding: 24px; color: var(--muted); font-size: 0.92rem; text-align: center; }
+      @media (max-width: 900px) {
+        .hero, .grid-3, .grid-2, .metrics, .cta-band { grid-template-columns: 1fr; display: grid; }
+        .nav-links { display: none; }
+        .cta-band { text-align: left; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <nav class="nav">
+          <a class="brand" href="/">Career<span>DNA</span> OS</a>
+          <div class="nav-links">
+            <a href="#how">How it works</a>
+            <a href="#trust">Trust</a>
+            <a href="app.html">Open prototype</a>
+          </div>
+        </nav>
+
+        <div class="hero">
+          <div>
+            <p class="pill">Prototype preview · trust-first professional identity</p>
+            <h1>Never rebuild your CV from scratch again.</h1>
+            <p>Your career record becomes a living source of truth. Upload a CV, review what was extracted, approve what matters, and generate any document from one trusted baseline.</p>
+            <div class="actions">
+              <a class="btn btn-primary" href="app.html">Open the prototype</a>
+              <a class="btn btn-secondary" href="#how">See how it works</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <h3>What this prototype shows</h3>
+            <ul>
+              <li>Onboarding from a real CV into a reviewable career graph</li>
+              <li>Trust-gated proposals that never silently enter the record</li>
+              <li>Document generation from one trusted baseline</li>
+              <li>Capture-first workflows for new accomplishments</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section id="how">
+        <div class="section-title">
+          <h2>How the MVP works</h2>
+          <p>The experience is intentionally simple: capture once, review once, generate everywhere.</p>
+        </div>
+        <div class="grid grid-3">
+          <div class="card">
+            <h3>1. Upload your CV</h3>
+            <p>Bring in a Word or PDF and let the system extract a structured, reviewable professional record.</p>
+          </div>
+          <div class="card">
+            <h3>2. Review with trust guardrails</h3>
+            <p>Proposed items stay quarantined until you review and approve them. Nothing untrusted appears in documents.</p>
+          </div>
+          <div class="card">
+            <h3>3. Generate any document</h3>
+            <p>Turn the same trusted baseline into an academic CV, a bio, a faculty profile, or a grant-ready document.</p>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><strong>1</strong><span>trusted baseline</span></div>
+          <div class="metric"><strong>2+</strong><span>document templates</span></div>
+          <div class="metric"><strong>8</strong><span>core object types</span></div>
+          <div class="metric"><strong>100%</strong><span>approval-gated public output</span></div>
+        </div>
+      </section>
+
+      <section id="trust">
+        <div class="section-title">
+          <h2>Why this matters for academic medicine</h2>
+          <p>Professionals need a record they can trust, share, and update without starting over every time.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>Professional identity, not a static file</h3>
+            <p>Each appointment, publication, award, and credential is maintained as a structured object with evidence and version history.</p>
+          </div>
+          <div class="card">
+            <h3>Governed AI, not black-box automation</h3>
+            <p>The experience is built around approval-first workflows so the system supports your judgment rather than replacing it.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="cta-band">
+          <div>
+            <h2 style="margin: 0 0 8px; font-size: 1.6rem;">Ready to see the experience?</h2>
+            <p style="margin: 0; color: rgba(255,255,255,0.86);">Open the prototype workspace to explore the product flow, review queue, document generation, and trust-centered UX.</p>
+          </div>
+          <a class="btn btn-primary" href="app.html">Launch prototype</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      CareerDNA OS · Prototype for careerdnaos.com · Built as a static site for deployment to your domain.
+    </footer>
+  </body>
+</html>
