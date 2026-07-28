@@ -696,7 +696,25 @@ function applyCorrection(id,val){
   corrections=corrections.filter(function(x){return x.id!==id});render();
 }
 function dismissCorrection(id){corrections=corrections.filter(function(x){return x.id!==id});toast("Dismissed");render()}
+function isLikelySectionHeading(text){
+  var t=(text||"").replace(/\s+/g," ").trim();
+  if(!t)return true;
+  if(/\n|\r/.test(text))return true;
+  var low=t.toLowerCase();
+  return /^(publications?|education|grants?|awards?|honou?rs?|presentations?|appointments?|leadership|service|training|credentials?|certifications?|experience|skills|media|news|about|contact)$/.test(low) || t.length<=3;
+}
+function isCompleteEntry(o){
+  if(!o)return false;
+  var title=(o.title||"").replace(/\s+/g," ").trim();
+  var subtitle=(o.subtitle||"").replace(/\s+/g," ").trim();
+  var inst=(o.inst?instName(o.inst):"").replace(/\s+/g," ").trim();
+  if(!title || isLikelySectionHeading(title))return false;
+  if(/\n|\r/.test(o.title||"") || /\n|\r/.test(o.subtitle||""))return false;
+  if(!subtitle && !inst && !o.start && !o.end && !o.evidence?.length)return false;
+  return true;
+}
 function entryDetailCard(o){
+  if(!isCompleteEntry(o))return "";
   var ev=(o.evidence||[]).map(function(e){return '<div style="margin-top:6px;font-size:.78rem;color:var(--muted)"><b>'+esc(e.t)+'</b><div style="color:var(--muted-2);margin-top:2px">'+esc(e.src)+'</div></div>'}).join("");
   var rels=(o.rels||[]).map(function(r){return '<div style="margin-top:6px;font-size:.78rem;color:var(--muted)">🔗 '+esc(r)+'</div>'}).join("");
   var versions=(o.versions||[]).slice(0,3).map(function(v){return '<div style="margin-top:6px;font-size:.78rem;color:var(--muted)"><b>'+esc(v.w)+'</b> — '+esc(v.t)+'</div>'}).join("");
@@ -717,8 +735,8 @@ function entryDetailCard(o){
 function correctionContext(c){
   var ids=(c.ids||[]).filter(Boolean);
   if(!ids.length)return "";
-  var rows=objects.filter(function(o){return ids.indexOf(o.id)>=0;}).map(function(o){return entryDetailCard(o);}).join("");
-  return rows?'<div class="merge-note" style="margin-top:12px;display:block"><div><b>Current entry</b></div>'+rows+'</div>':"";
+  var rows=objects.filter(function(o){return ids.indexOf(o.id)>=0;}).filter(function(o){return isCompleteEntry(o);}).map(function(o){return entryDetailCard(o);}).join("");
+  return rows?'<div class="merge-note" style="margin-top:12px;display:block"><div><b>Current entry</b></div>'+rows+'</div>':'<div class="merge-note" style="margin-top:12px;display:block"><div><b>Current entry</b></div><div style="font-size:.82rem;color:var(--muted);margin-top:6px">No complete entry was found for this suggestion.</div></div>';
 }
 function correctionCard(c){
   var input=c.kind==="year"?'<input data-corryear="'+c.id+'" placeholder="e.g. 2023" style="width:120px;padding:.4rem .6rem;border:1px solid var(--line);border-radius:8px;margin-right:8px;font-family:var(--sans)"/>':'';
