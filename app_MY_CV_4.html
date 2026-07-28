@@ -662,6 +662,19 @@ function trustBar(label,n,color){var tot=trusted().length+proposals.length;var p
 /* ---- EXTRACTION REVIEW (onboarding) ---- */
 var corrections=null; // null = AI review not run yet
 var dismissedCorrectionIds=[];
+function loadDismissedCorrectionIds(){
+  try{
+    if(!window.localStorage)return [];
+    var raw=window.localStorage.getItem("careerDNA.dismissedCorrections");
+    if(!raw)return [];
+    var parsed=JSON.parse(raw);
+    return Array.isArray(parsed)?parsed.filter(Boolean):[];
+  } catch(e){return []}
+}
+function persistDismissedCorrectionIds(){
+  try{if(window.localStorage)window.localStorage.setItem("careerDNA.dismissedCorrections",JSON.stringify(dismissedCorrectionIds));}catch(e){}
+}
+dismissedCorrectionIds=loadDismissedCorrectionIds();
 function normT(s){return (s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim()}
 function truncT(s,n){s=s||"";n=n||46;return s.length>n?s.slice(0,n)+"…":s}
 function hasYear(s){return /(19|20)\d\d/.test(s||"")}
@@ -703,11 +716,13 @@ function applyCorrection(id,val){
   else if(c.kind==="remove"){objects=objects.filter(function(o){return o.id!==c.ids[0]});toast("Removed ✓")}
   else {toast("Thanks — noted ✓")}
   if(dismissedCorrectionIds.indexOf(id)<0)dismissedCorrectionIds.push(id);
+  persistDismissedCorrectionIds();
   audit.unshift({ic:"🔧",t:"CV review: "+c.sugg+" applied",who:"You",time:"Just now"});
   corrections=corrections.filter(function(x){return x.id!==id});render();
 }
 function dismissCorrection(id){
   if(dismissedCorrectionIds.indexOf(id)<0)dismissedCorrectionIds.push(id);
+  persistDismissedCorrectionIds();
   corrections=corrections.filter(function(x){return x.id!==id});toast("Dismissed");render()
 }
 function isLikelySectionHeading(text){
@@ -1183,7 +1198,7 @@ function doParseCV(){
     var res=parseCV(uploadState.text);
     if(!res.objects.length){uploadState.busy=false;renderUpload();toast("Couldn’t read CV sections — make sure it has headings like Education, Publications, Grants…");return}
     if(!uploadState.fileName)CV_ORIGINAL=null; // pasted text has no original format
-    objects=res.objects;proposals=[];socialDrafts=[];corrections=null;dismissedCorrectionIds=[];CV_FILE=uploadState.fileName||"your pasted CV";
+    objects=res.objects;proposals=[];socialDrafts=[];corrections=null;dismissedCorrectionIds=loadDismissedCorrectionIds();CV_FILE=uploadState.fileName||"your pasted CV";
     activity=[{c:"var(--ok)",t:"Imported <b>"+res.objects.length+"</b> items — all trusted and ready to use",time:"Just now"}];
     audit.unshift({ic:"↥",t:"Imported CV ("+(uploadState.fileName||"pasted text")+") — "+res.objects.length+" items parsed",who:"You",time:"Just now"});
     setPerson(res.name);CV_EDIT_HTML=null;
@@ -1204,7 +1219,7 @@ function setPerson(name){
 }
 function resetDemo(){
   if(!DEMO_SNAPSHOT)return;var s=JSON.parse(DEMO_SNAPSHOT);objects=s.o;proposals=s.p;activity=s.a;socialDrafts=s.d;
-  PERSON={name:"Elena Reyes, MD",first:"Dr. Elena Reyes",initials:"ER",role:"Associate Professor of Medicine (Cardiology)",subj:"She",poss:"Her",demo:true};CV_FILE="Reyes_CV_2025.pdf";corrections=null;dismissedCorrectionIds=[];CV_ORIGINAL=null;CV_EDIT_HTML=null;state.tmpl="cv";
+  PERSON={name:"Elena Reyes, MD",first:"Dr. Elena Reyes",initials:"ER",role:"Associate Professor of Medicine (Cardiology)",subj:"She",poss:"Her",demo:true};CV_FILE="Reyes_CV_2025.pdf";corrections=null;dismissedCorrectionIds=loadDismissedCorrectionIds();CV_ORIGINAL=null;CV_EDIT_HTML=null;state.tmpl="cv";
   var n=document.querySelector(".who .n");if(n)n.textContent="Dr. Elena Reyes, MD";
   var r=document.querySelector(".who .r");if(r)r.textContent="Assoc. Professor · Cardiology";
   var av=document.querySelector(".topbar .avatar");if(av)av.textContent="ER";
