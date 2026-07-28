@@ -581,6 +581,43 @@ function looksBinary(t){if(!t)return false;var head=t.slice(0,800);var ctrl=(hea
 function isReadable(s){if(!s)return false;if(/[\u0000-\u0008\u000E-\u001F\uFFFD]/.test(s))return false;var t=(""+s).trim();if(!t)return false;var L=(t.match(/[A-Za-z]/g)||[]).length;if(t.length>=6&&L/t.length<0.5)return false;return true}
 function toast(msg){var t=document.createElement("div");t.className="toast";t.innerHTML='<span class="ti">●</span> '+msg;$("#toasts").appendChild(t);setTimeout(function(){t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(function(){t.remove()},300)},2600)}
 function confPct(c){return Math.round(c*100)}
+function normalizeProposalText(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim()}
+function tokenOverlap(a,b){var ta=normalizeProposalText(a).split(/\s+/).filter(Boolean);var tb=normalizeProposalText(b).split(/\s+/).filter(Boolean);if(!ta.length||!tb.length)return 0;var shared=ta.filter(function(t){return tb.indexOf(t)>=0}).length;return shared/Math.max(1,Math.min(ta.length,tb.length));}
+function isLikelyDuplicateProposal(p){
+  if(!p)return false;
+  var doi=(p.full&&p.full.doi?p.full.doi:(p.detail&&p.detail.DOI?p.detail.DOI:""))||"";
+  if(doi){
+    var normDoi=doi.toLowerCase().replace(/^https?:\/\/doi\.org\//,"" );
+    var matches=objects.filter(function(o){var objDoi=(o.doi||"").toLowerCase().replace(/^https?:\/\/doi\.org\//,"" );return objDoi&&objDoi===normDoi;});
+    if(matches.length)return true;
+  }
+  var title=(p.full&&p.full.fullTitle?p.full.fullTitle:p.title)||"";
+  var normTitle=normalizeProposalText(title);
+  if(!normTitle)return false;
+  var dupMatches=objects.filter(function(o){
+    if(o.type!==p.kind)return false;
+    var objTitle=normalizeProposalText(o.title||"");
+    if(!objTitle)return false;
+    if(objTitle===normTitle)return true;
+    var overlap=tokenOverlap(objTitle,normTitle);
+    var contains=objTitle.indexOf(normTitle)===0||normTitle.indexOf(objTitle)===0;
+    return overlap>=0.72||contains;
+  });
+  if(dupMatches.length)return true;
+  if((p.confidence||0)<0.45)return true;
+  return false;
+}
+function isProposalWorthReview(p){
+  if(!p)return false;
+  if(isLikelyDuplicateProposal(p))return false;
+  if(!p.title)return false;
+  var rec=(p.recommended||"").toLowerCase();
+  if(rec.indexOf("likely not you")>=0||rec.indexOf("reject or ignore")>=0)return false;
+  var confidence=Number(p.confidence)||0;
+  if(confidence<0.55&&!p.full)return false;
+  return true;
+}
+function visibleProposals(){return proposals.filter(isProposalWorthReview);} 
 function acteMini(o){
   var tOn=o.trust==="Trusted"||o.trust==="Verified";
   return '<div class="acte-mini" title="Authority · Confidence · Trust · Evidence">'
@@ -597,8 +634,9 @@ function statusPill(o){
   return '<span class="pill draft">Draft</span>';
 }
 function updateCounts(){
-  $("#rqCount").textContent=proposals.length;
-  $("#rqCount").style.display=proposals.length?"flex":"none";
+  var visible=visibleProposals();
+  $("#rqCount").textContent=visible.length;
+  $("#rqCount").style.display=visible.length?"flex":"none";
 }
 
 /* ============================ VIEWS ============================ */
@@ -629,12 +667,12 @@ function viewOverview(){
   var acts=activity.map(function(a){return '<div class="act"><span class="adot" style="background:'+a.c+'"></span><div>'+a.t+'</div><span class="atime">'+a.time+'</span></div>'}).join("");
   return ''
   +head("Overview","Your Professional Identity Graph™ at a glance — one trusted record behind every document.")
-  +'<div class="banner"><span class="bi">🔐</span><div><b>How trust works here:</b> everything <b>you</b> enter or upload is <b>trusted</b> — you’re the authority on your own career. Only items <b>discovered by agents</b> from outside sources are <em>proposed</em>, and they stay out of your record until you approve them.'+((proposals.length||toConfirm)?' Right now: <b>'+proposals.length+'</b> discovered item(s) to review'+(toConfirm?' and <b>'+toConfirm+'</b> of your items to quickly confirm':'')+'. ':' ')+'<span class="link" data-go="reviewqueue" style="color:var(--navy-700);font-weight:700;cursor:pointer">Open review queue →</span></div></div>'
+  +'<div class="banner"><span class="bi">🔐</span><div><b>How trust works here:</b> everything <b>you</b> enter or upload is <b>trusted</b> — you’re the authority on your own career. Only items <b>discovered by agents</b> from outside sources are <em>proposed</em>, and they stay out of your record until you approve them.'+(((visibleProposals().length)||toConfirm)?' Right now: <b>'+visibleProposals().length+'</b> discovered item(s) to review'+(toConfirm?' and <b>'+toConfirm+'</b> of your items to quickly confirm':'')+'. ':' ')+'<span class="link" data-go="reviewqueue" style="color:var(--navy-700);font-weight:700;cursor:pointer">Open review queue →</span></div></div>'
   +'<div class="grid g4" style="margin-bottom:18px">'
     +statTile("📄 Publications",pubs,"trusted &amp; evidence-backed")
     +statTile("🔬 Active grants",grants,"$2.4M in current funding")
     +statTile("🏛️ Appointments",appts,"1 concurrent, all verified")
-    +statTile("✨ To approve",proposals.length,"discovered by agents",true)
+    +statTile("✨ To approve",visibleProposals().length,"discovered by agents",true)
   +'</div>'
   +'<div class="card add-card" style="margin-bottom:18px"><div class="card-h"><h3>➕ Add an update</h3><span class="tag">Capture now · enrich later</span></div><div class="card-pad" style="padding-top:16px">'
     +'<p style="font-size:.9rem;color:var(--muted);margin-bottom:14px">Add anything new to your career — a paper, a talk, a new role, an award. Snap a photo, drop a PDF, dictate it, or just type it. CareerDNA OS files it into the right CV category for you, with no forms to fill.</p>'
@@ -650,14 +688,14 @@ function viewOverview(){
     +'<div class="card"><div class="card-h"><h3>Publications by year</h3><span class="tag">Trusted only</span></div><div class="chart-wrap"><div class="bars">'+bars+'</div></div><div style="padding:6px 20px 16px;font-size:.8rem;color:var(--muted-2)">Generated from your trusted record. Proposed items are excluded until approved.</div></div>'
     +'<div class="card"><div class="card-h"><h3>Trust summary</h3></div><div class="card-pad" style="padding-top:16px">'
       +trustBar("Trusted — provided by you",trusted().length,"var(--ok)")
-      +trustBar("Proposed — discovered by agents",proposals.length,"var(--warn)")
+      +trustBar("Proposed — discovered by agents",visibleProposals().length,"var(--warn)")
       +'<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2);font-size:.83rem;color:var(--muted)">'+(toConfirm?'<b>'+toConfirm+'</b> of your trusted items are pending a quick <b>extraction confirmation</b>. ':'')+'Every fact carries <b>ACTE</b>: Authority, Confidence, Trust &amp; Evidence.</div>'
     +'</div></div>'
   +'</div>'
   +'<div class="card" style="margin-top:18px"><div class="card-h"><h3>Recent activity</h3><span class="link" data-go="settings">View full audit log →</span></div>'+acts+'</div>';
 }
 function statTile(k,v,d,warn){return '<div class="card stat"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="d '+(warn?'':'up')+'">'+d+'</div></div>'}
-function trustBar(label,n,color){var tot=trusted().length+proposals.length;var pct=tot?Math.round(n/tot*100):0;return '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:.84rem;margin-bottom:4px"><span>'+label+'</span><b style="color:var(--navy-800)">'+n+'</b></div><div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:'+pct+'%;background:'+color+'"></i></div></div>'}
+function trustBar(label,n,color){var tot=trusted().length+visibleProposals().length;var pct=tot?Math.round(n/tot*100):0;return '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:.84rem;margin-bottom:4px"><span>'+label+'</span><b style="color:var(--navy-800)">'+n+'</b></div><div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:'+pct+'%;background:'+color+'"></i></div></div>'}
 
 /* ---- EXTRACTION REVIEW (onboarding) ---- */
 var corrections=null; // null = AI review not run yet
@@ -818,8 +856,9 @@ function objRow(o){
 
 /* ---- REVIEW QUEUE ---- */
 function viewQueue(){
-  if(!proposals.length)return head("Review queue","Governed discovery — agents scan trusted public sources and propose new items for your approval.")+'<div class="empty">✅ Your review queue is clear. Discovery agents run monthly and will surface new items here.<br><span style="font-size:.82rem">Last scan: Jul 24, 2026 · PubMed, ORCID, Crossref, Google News</span></div>';
-  var cards=proposals.map(function(p){return propCard(p)}).join("");
+  var visible=visibleProposals();
+  if(!visible.length)return head("Review queue","Governed discovery — agents scan trusted public sources and propose new items for your approval.")+'<div class="empty">✅ Your review queue is clear. Discovery agents run monthly and will surface new items here.<br><span style="font-size:.82rem">Last scan: Jul 24, 2026 · PubMed, ORCID, Crossref, Google News</span></div>';
+  var cards=visible.map(function(p){return propCard(p)}).join("");
   return ''
   +head("Review queue","Agents continuously scan trusted public sources — new publications, awards, and <b>news &amp; media mentions of you</b>. Each discovery is <b>proposed</b> with evidence and a confidence score, and never enters your trusted record or documents until you approve it.")
   +'<div class="banner"><span class="bi">🛡️</span><div><b>Trust before automation.</b> These items were found by <b>agents in outside sources</b>, so they’re <em>proposed</em> — not trusted — until you approve them. (Anything <b>you</b> enter or upload yourself is trusted automatically.) Choose Accept, Edit &amp; accept, Reject, Defer, or Ignore.</div></div>'
@@ -929,7 +968,7 @@ function renderDoc(){
   }
   var t=templates.filter(function(x){return x.id===state.tmpl})[0];if(!t)t=templates[0];
   var asOf=state.asOf;
-  var proposedPubs=proposals.filter(function(p){return p.kind==="publication"&&!p.existing}).length;
+  var proposedPubs=visibleProposals().filter(function(p){return p.kind==="publication"&&!p.existing}).length;
   var missing='';
   if(PERSON.demo&&(state.tmpl==="cv"||state.tmpl==="biosketch")){
     missing='<div class="missing">⚠️ <b>Missing recommended information for this output:</b> co-investigators on the R01 grant, and an end date for one 2025 lecture. Required fields are complete — you can generate now and fill the rest later.</div>';
