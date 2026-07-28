@@ -696,9 +696,22 @@ function applyCorrection(id,val){
   corrections=corrections.filter(function(x){return x.id!==id});render();
 }
 function dismissCorrection(id){corrections=corrections.filter(function(x){return x.id!==id});toast("Dismissed");render()}
+function correctionContext(c){
+  var ids=(c.ids||[]).filter(Boolean);
+  if(!ids.length)return "";
+  var rows=objects.filter(function(o){return ids.indexOf(o.id)>=0;}).map(function(o){
+    var meta=[];
+    if(o.subtitle)meta.push(esc(o.subtitle));
+    if(o.inst)meta.push(esc(instName(o.inst)));
+    return '<div style="margin-top:8px"><div style="font-weight:700;color:var(--navy-800)">'+esc(o.title)+'</div>'+(meta.length?'<div style="font-size:.8rem;color:var(--muted);margin-top:2px">'+meta.join(" · ")+'</div>':'')+'</div>';
+  }).join("");
+  return rows?'<div class="merge-note" style="margin-top:12px"><div><b>Current entry</b></div>'+rows+'</div>':"";
+}
 function correctionCard(c){
   var input=c.kind==="year"?'<input data-corryear="'+c.id+'" placeholder="e.g. 2023" style="width:120px;padding:.4rem .6rem;border:1px solid var(--line);border-radius:8px;margin-right:8px;font-family:var(--sans)"/>':'';
-  return '<div class="prop"><div class="ph"><div class="oic" style="background:var(--info-tint)">🤖</div><div style="flex:1"><div class="pt" style="font-weight:600">'+esc(c.q)+'</div><div class="psrc">AI review suggestion — you decide</div></div></div><div class="btn-row" style="margin-top:12px;align-items:center">'+input+'<button class="btn ok sm" data-corrapply="'+c.id+'">✓ '+esc(c.sugg)+'</button><button class="btn sm" data-corrdismiss="'+c.id+'">Dismiss</button></div></div>';
+  return '<div class="prop"><div class="ph"><div class="oic" style="background:var(--info-tint)">🤖</div><div style="flex:1"><div class="pt" style="font-weight:600">'+esc(c.q)+'</div><div class="psrc">AI review suggestion — you decide</div></div></div>'
+    +correctionContext(c)
+    +'<div class="btn-row" style="margin-top:12px;align-items:center">'+input+'<button class="btn ok sm" data-corrapply="'+c.id+'">✓ '+esc(c.sugg)+'</button><button class="btn sm" data-corrdismiss="'+c.id+'">Dismiss</button></div></div>';
 }
 function viewExtraction(){
   var n=trusted().length,cats={};objects.forEach(function(o){cats[o.type]=1});var catN=Object.keys(cats).length;
